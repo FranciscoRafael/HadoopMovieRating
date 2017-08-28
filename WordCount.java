@@ -20,8 +20,9 @@ public class WordCount {
         private Text word = new Text();
         
         public void map(Object key, Text value, Context context) throws IOException, InterruptedException {
-            String values[] = value.split(",");
-            context.write(values[0], values[1]+";"+values[2]);
+            String aux = value.toString();
+            String [] values = aux.split(",");
+            context.write(new Text(values[0]), new Text(values[1]+";"+values[2]));
         }
     }
     
@@ -32,13 +33,14 @@ public class WordCount {
         public void reduce(Text key, Iterable<Text> values,
                            Context context
                            ) throws IOException, InterruptedException {
-            System.out.println(key)
-            for (IntWritable val : values) {
-                System.out.println(val)
-                System.out.println()
+            System.out.println(key);
+            String text = new String();
+            for (Text val : values) {
+                text = text + "|" + val.toString();
+                System.out.println(val);
+                System.out.println();
             }
-            result.set(sum);
-            context.write(key, result);
+            context.write(key, new Text(text));
         }
     }
     
@@ -50,7 +52,7 @@ public class WordCount {
         job.setCombinerClass(IntSumReducer.class);
         job.setReducerClass(IntSumReducer.class);
         job.setOutputKeyClass(Text.class);
-        job.setOutputValueClass(IntWritable.class);
+        job.setOutputValueClass(Text.class);
         FileInputFormat.addInputPath(job, new Path(args[0]));
         FileOutputFormat.setOutputPath(job, new Path(args[1]));
         System.exit(job.waitForCompletion(true) ? 0 : 1);

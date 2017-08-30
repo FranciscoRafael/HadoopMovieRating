@@ -46,16 +46,17 @@ public class WordCountSec {
         }
     }
 
-    public static class FinalReducer
+    public static class FinalCombiner
     extends Reducer<Text,Text,Text,Text> {
         public void reduce(Text key, Iterable<Text> values,Context context) throws IOException, InterruptedException {
             double sum_xx = 0.0, sum_xy = 0.0, sum_yy = 0.0, sum_x = 0.0, sum_y = 0.0;
             int n = 0;
             double correlation = 0.0;
             String [] moviePair = key.toString().split(";");
-
+            
             double r1 = 0.0;
             double r2 = 0.0;
+            double aux = 0;
             
             for (Text rating : values) {
                 String[] ratings = rating.toString().split(";");
@@ -64,22 +65,59 @@ public class WordCountSec {
                     r1 = Double.parseDouble(ratings[0]);
                     r2 = Double.parseDouble(ratings[1]);
                     
-                    sum_xx += r1 * r1;
-                    sum_yy += r2 * r2;
-                    sum_xy += r1 * r2;
-                    sum_y += r2;
-                    sum_x += r1;
+//                    sum_xx += r1 * r1;
+//                    sum_yy += r2 * r2;
+//                    sum_xy += r1 * r2;
+//                    sum_y += r2;
+//                    sum_x += r1;
+
                     n += 1;
+                    aux += (r1 - r2)*(r1 - r2);
                 }
             }
-            double numerador = (n*sum_xy - sum_x*sum_y);
-            double denominador = Math.sqrt(n*sum_xx - (sum_x*sum_x)) * Math.sqrt(n*sum_yy - (sum_y*sum_y));
-            if (denominador == 0) {
-                correlation = 0.0;
-            }else {
-                correlation = numerador / denominador;
+            
+            String out = ""+n+","+aux;
+            
+            context.write(key, new Text(out));
+        }
+    }
+
+    
+    public static class FinalReducer
+    extends Reducer<Text,Text,Text,Text> {
+        public void reduce(Text key, Iterable<Text> values,Context context) throws IOException, InterruptedException {
+            double sum_xx = 0.0, sum_xy = 0.0, sum_yy = 0.0, sum_x = 0.0, sum_y = 0.0;
+            int n = 0;
+            double correlation = 0.0;
+            String [] moviePair = key.toString().split(";");
+            
+            double r1 = 0.0;
+            double r2 = 0.0;
+            double aux = 0;
+            
+            for (Text rating : values) {
+                String[] ratings = rating.toString().split(",");
+                
+                n += Double.parseDouble(ratings[0]);
+//                sum_x += Double.parseDouble(ratings[1]);
+//                sum_y += Double.parseDouble(ratings[2]);
+//                sum_xx += Double.parseDouble(ratings[3]);
+//                sum_yy += Double.parseDouble(ratings[4]);
+//                sum_xy += Double.parseDouble(ratings[5]);
+                aux += Double.parseDouble(ratings[1]);
+                
             }
-            correlation = (correlation + 1)/2;
+            
+            correlation = aux / (25*n);
+
+//            //double numerador = (n*sum_xy - sum_x*sum_y);
+//            double numerador = (sum_xy);
+//            double denominador = Math.sqrt(sum_xx*sum_yy);
+//            if (denominador == 0) {
+//                correlation = 0.0;
+//            }else {
+//                correlation = numerador / denominador;
+//            }
 
             String out = ""+correlation;
             context.write(key, new Text(out));
@@ -92,7 +130,7 @@ public class WordCountSec {
         Job job = Job.getInstance(conf, "word count");
         job.setJarByClass(WordCountSec.class);
         job.setMapperClass(CombinationMapper.class);
-        //job.setCombinerClass(FinalReducer.class);
+        job.setCombinerClass(FinalCombiner.class);
         job.setReducerClass(FinalReducer.class);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(Text.class);

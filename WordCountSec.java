@@ -1,5 +1,5 @@
 import java.io.IOException;
-import java.util.StringTokenizer;
+import java.util.*;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -51,11 +51,11 @@ public class WordCountSec {
         public void reduce(Text key, Iterable<Text> values,Context context) throws IOException, InterruptedException {
             double sum_xx = 0.0, sum_xy = 0.0, sum_yy = 0.0, sum_x = 0.0, sum_y = 0.0;
             int n = 0;
-
+            double correlation = 0.0;
             String [] moviePair = key.toString().split(";");
 
-            double r1 = 0;
-            double r2 = 0;
+            double r1 = 0.0;
+            double r2 = 0.0;
             
             for (Text rating : values) {
                 String[] ratings = rating.toString().split(";");
@@ -63,8 +63,6 @@ public class WordCountSec {
                 if (ratings.length > 1){
                     r1 = Double.parseDouble(ratings[0]);
                     r2 = Double.parseDouble(ratings[1]);
-
-                    System.out.println("r1: "+Double.toString(r1) + "r2: "+Double.toString(r2));
                     
                     sum_xx += r1 * r1;
                     sum_yy += r2 * r2;
@@ -72,15 +70,19 @@ public class WordCountSec {
                     sum_y += r2;
                     sum_x += r1;
                     n += 1;
-                    System.out.println("sum_x: "+Double.toString(sum_x) + "sum_y: "+Double.toString(sum_y));
-
                 }
             }
+            double numerador = (n*sum_xy - sum_x*sum_y);
+            double denominador = Math.sqrt(n*sum_xx - (sum_x*sum_x)) * Math.sqrt(n*sum_yy - (sum_y*sum_y));
+            if (denominador == 0) {
+                correlation = 0.0;
+            }else {
+                correlation = numerador / denominador;
+            }
+            correlation = (correlation + 1)/2;
 
-            double correlation = sum_x + sum_y;
-            //double correlation = (n*sum_xy - sum_x*sum_y)/(Math.sqrt(n*sum_xx - (sum_x*sum_x)) * Math.sqrt(n*sum_yy - (sum_y*sum_y)));
-            
-            context.write(key, new Text(Double.toString(correlation)));
+            String out = ""+correlation;
+            context.write(key, new Text(out));
         }
     }
 
@@ -90,7 +92,7 @@ public class WordCountSec {
         Job job = Job.getInstance(conf, "word count");
         job.setJarByClass(WordCountSec.class);
         job.setMapperClass(CombinationMapper.class);
-        job.setCombinerClass(FinalReducer.class);
+        //job.setCombinerClass(FinalReducer.class);
         job.setReducerClass(FinalReducer.class);
         job.setOutputKeyClass(Text.class);
         job.setOutputValueClass(Text.class);

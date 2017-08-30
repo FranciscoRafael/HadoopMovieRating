@@ -54,19 +54,31 @@ public class WordCountSec {
 
             String [] moviePair = key.toString().split(";");
 
+            double r1 = 0;
+            double r2 = 0;
+            
             for (Text rating : values) {
-                double r1 = Double.parseDouble((rating.toString()).split(";")[0]);
-                double r2 = Double.parseDouble((rating.toString()).split(";")[1]);
+                String[] ratings = rating.toString().split(";");
+                
+                if (ratings.length > 1){
+                    r1 = Double.parseDouble(ratings[0]);
+                    r2 = Double.parseDouble(ratings[1]);
 
-                sum_xx += r1 * r1;
-                sum_yy += r2 * r2;
-                sum_xy += r1 * r2;
-                sum_y += r2;
-                sum_x += r1;
-                n += 1;
+                    System.out.println("r1: "+Double.toString(r1) + "r2: "+Double.toString(r2));
+                    
+                    sum_xx += r1 * r1;
+                    sum_yy += r2 * r2;
+                    sum_xy += r1 * r2;
+                    sum_y += r2;
+                    sum_x += r1;
+                    n += 1;
+                    System.out.println("sum_x: "+Double.toString(sum_x) + "sum_y: "+Double.toString(sum_y));
+
+                }
             }
 
-            double correlation = (n*sum_xy - sum_x*sum_y)/(Math.sqrt(n*sum_xx - (sum_x*sum_x)) * Math.sqrt(n*sum_yy - (sum_y*sum_y)));
+            double correlation = sum_x + sum_y;
+            //double correlation = (n*sum_xy - sum_x*sum_y)/(Math.sqrt(n*sum_xx - (sum_x*sum_x)) * Math.sqrt(n*sum_yy - (sum_y*sum_y)));
             
             context.write(key, new Text(Double.toString(correlation)));
         }
